@@ -40,21 +40,31 @@ const App: React.FC = () => {
     (_, index) => minPercent + dValue * index,
   );
 
+  const closetWithZero = useMemo(
+    () => getClosetZeroValue(frameLinePercents) || 0,
+    [frameLinePercents],
+  );
+
+  const frameValuesToDraws = useMemo(
+    () => frameLinePercents.map(value => value - closetWithZero),
+    [closetWithZero, frameLinePercents],
+  );
+
   const lineData1: [number, number][] = percentData1.map((item, index) => [
     index,
-    item,
+    item + closetWithZero,
   ]);
 
   const lineData2: [number, number][] = percentData2.map((item, index) => [
     index,
-    item,
+    item + closetWithZero,
   ]);
 
   return (
     <SafeAreaView style={styles.safeView}>
       <View style={styles.container}>
         <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
-          {frameLinePercents.map((value, index) => (
+          {frameValuesToDraws.map((value, index) => (
             <G key={`line_index_${index}`}>
               <Text
                 textAnchor="end"
@@ -132,6 +142,14 @@ const CLine: React.FC<LineProps> = ({data, minPercent, maxPercent, stroke}) => {
   }
 
   return <Path d={path} stroke={stroke} strokeWidth={1} />;
+};
+
+export const getClosetZeroValue = (data: number[]) => {
+  if (data.length === 0) {
+    return 0;
+  }
+  const hasNegativeNumber = data.find(value => value < 0);
+  return hasNegativeNumber ? Math.min(...data.filter(value => value >= 0)) : 0;
 };
 
 const styles = StyleSheet.create({
