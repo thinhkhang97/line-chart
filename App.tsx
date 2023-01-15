@@ -1,7 +1,9 @@
 import React, {useMemo} from 'react';
 import {Dimensions, SafeAreaView, StyleSheet, View} from 'react-native';
-import Svg, {G, Line, Rect, Text} from 'react-native-svg';
+import Svg, {G, Line, Path, Rect, Text} from 'react-native-svg';
 import {mockData1, mockData2} from './data';
+import {scaleLinear} from 'd3-scale';
+import * as shape from 'd3-shape';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PADDING_HORIZONTAL = 24;
@@ -38,6 +40,16 @@ const App: React.FC = () => {
     (_, index) => minPercent + dValue * index,
   );
 
+  const lineData1: [number, number][] = percentData1.map((item, index) => [
+    index,
+    item,
+  ]);
+
+  const lineData2: [number, number][] = percentData2.map((item, index) => [
+    index,
+    item,
+  ]);
+
   return (
     <SafeAreaView style={styles.safeView}>
       <View style={styles.container}>
@@ -61,6 +73,18 @@ const App: React.FC = () => {
               />
             </G>
           ))}
+          <CLine
+            data={lineData1}
+            minPercent={minPercent}
+            maxPercent={maxPercent}
+            stroke="red"
+          />
+          <CLine
+            data={lineData2}
+            minPercent={minPercent}
+            maxPercent={maxPercent}
+            stroke="blue"
+          />
           <Rect
             x={0}
             y={CHART_HEIGHT - TIME_AREA_HEIGHT}
@@ -71,6 +95,43 @@ const App: React.FC = () => {
       </View>
     </SafeAreaView>
   );
+};
+
+type LineProps = {
+  data: [number, number][];
+  minPercent: number;
+  maxPercent: number;
+  stroke?: string;
+};
+
+const CLine: React.FC<LineProps> = ({data, minPercent, maxPercent, stroke}) => {
+  const path = useMemo(() => {
+    if (data.length === 0) {
+      return '';
+    }
+    const scaleX = scaleLinear(
+      [0, data.length - 1],
+      [Y_AXIS_WIDTH, CHART_WIDTH],
+    );
+
+    const scaleY = scaleLinear(
+      [minPercent, maxPercent],
+      [CHART_AREA_HEIGHT, (1 / NUMBER_OF_FRAME) * CHART_AREA_HEIGHT],
+    );
+
+    const lineShape = shape
+      .line()
+      .x(([x]) => scaleX(x))
+      .y(([, y]) => scaleY(y));
+
+    return lineShape(data);
+  }, [data, maxPercent, minPercent]);
+
+  if (!path) {
+    return null;
+  }
+
+  return <Path d={path} stroke={stroke} strokeWidth={1} />;
 };
 
 const styles = StyleSheet.create({
